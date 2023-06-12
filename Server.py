@@ -10,7 +10,7 @@ class CarRacingServer:
 
     def __init__(self):
         self.global_surroundings = Surroundings()
-        self.host = "192.168.1.9"  # Server IP address
+        self.host = "localhost"  # Server IP address
         self.port = 5050  # Server port
         self.server_socket = None
         self.connections = []
@@ -70,10 +70,10 @@ class CarRacingServer:
             if len(self.players) > 0:
                 self.global_surroundings.game_started = True
 
-            if (len(self.players) <= 1) and self.global_surroundings.game_started:
-                print("game about to end")
-                self.global_surroundings.game_ended = True
-                print("game ended:",self.global_surroundings.game_ended)
+            #if (len(self.players) <= 1) and self.global_surroundings.game_started:
+            #    print("game about to end")
+             #   self.global_surroundings.game_ended = True
+              #  print("game ended:",self.global_surroundings.game_ended)
 
             time.sleep(0.01)
 

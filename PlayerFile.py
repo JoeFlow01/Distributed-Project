@@ -6,6 +6,7 @@ class Player:
         self.car_y_coordinate = None
         self.position = 1
         self.dist_covered = 0
+        self.finished = False
 
 
 
