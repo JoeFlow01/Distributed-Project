@@ -3,7 +3,6 @@ import threading
 from SurroundingsFile import Surroundings
 import pickle
 from PlayerFile import Player
-import time
 
 
 class CarRacingServer:
@@ -13,17 +12,21 @@ class CarRacingServer:
         self.host = "localhost"  # Server IP address
         self.port = 5050  # Server port
         self.server_socket = None
-        self.connections = []
         self.players = []
+        self.lock = threading.Lock()
 
-    def print_objects(self, list):
-        for i in list:
-            print(vars(i))
+    def sort_players_by_distance(self, players):
+        sorted_players = sorted(players, key=lambda laeeb: laeeb.dist_covered, reverse=True)
+        for i, player in enumerate(sorted_players):
+            player.position = i + 1
+        return sorted_players
 
     def update_player(self, player):
         for i in range(len(self.players)):
             if self.players[i].username == player.username:
+                self.lock.acquire()
                 self.players[i] = player
+                self.lock.release()
                 return
 
     def register_player(self, player):
@@ -33,49 +36,31 @@ class CarRacingServer:
         for i in self.players:
             if i.username == player.username:
                 return "User name already exists"
+        self.lock.acquire()
         self.players.append(player)
+        self.lock.release()
         return "Login Successful, Joining the game"
 
     def update_map(self):
-
         while True:
             if self.global_surroundings.game_ended:
-                serialized_data = pickle.dumps(self.global_surroundings)
-                for client_socket in self.connections:
-                    try:
-                        client_socket.send(serialized_data)
-                    except socket.error:
-                        print("Socket is closed")
                 self.global_surroundings = Surroundings()
                 print("Game 5les ya ged3aan")
                 print(vars(self.global_surroundings))
                 self.players = []
-                for current_socket in self.connections:
-                    current_socket.close()
-                    self.connections.remove(current_socket)
-                self.connections = []
-                print("players:")
-                self.print_objects(self.players)
-                print("Connections:")
-                print(self.connections)
-                self.global_surroundings.game_ended = False
-                self.global_surroundings.game_started = False
-
-                print("Reseting done, Number of connections:",len(self.connections))
-
-            for player in self.players:
-                if player.crashed:
-
-                    self.players.remove(player)
-            if len(self.players) > 0:
+            if len(self.players) > 1:
                 self.global_surroundings.game_started = True
-
-            #if (len(self.players) <= 1) and self.global_surroundings.game_started:
-            #    print("game about to end")
-             #   self.global_surroundings.game_ended = True
-              #  print("game ended:",self.global_surroundings.game_ended)
-
-            time.sleep(0.01)
+            self.lock.acquire()
+            self.sort_players_by_distance(self.players)
+            self.lock.release()
+            finished = True
+            if len(self.players) < 1:
+                finished = False
+            for player in self.players:
+                if not player.finished:
+                    finished = False
+                    break
+            self.global_surroundings.game_ended = finished
 
     def receive_data(self, client_socket):
         while True:
@@ -103,10 +88,8 @@ class CarRacingServer:
             print('New connection from {}:{}'.format(client_address[0], client_address[1]))
             connection_thread = threading.Thread(target=self.handle_client, args=(client_socket,))
             connection_thread.start()
-            print("number of connections:", len(self.connections))
 
     def handle_client(self, client_socket):
-        self.connections.append(client_socket)
         while True:
             try:
                 message = client_socket.recv(1024).decode()
@@ -119,6 +102,10 @@ class CarRacingServer:
                     break
             except socket.error:
                 print("Socket is closed")
+                try:
+                    client_socket.close()
+                except:
+                    print("yady elnila")
                 break
 
         while True:
@@ -136,19 +123,17 @@ class CarRacingServer:
                         print(f"Error occurred while sending data: {e}")
                         break
 
-
                     # send players
                     serialized_data = pickle.dumps(self.players)
                     try:
+                        self.lock.acquire()
                         client_socket.send(serialized_data)
+                        self.lock.release()
                     except OSError as e:
                         print(f"Error occurred while sending data: {e}")
                         break
-
-
             except socket.error:
                 print("removing client due to errors in sending and receiving data")
-                self.connections.remove(client_socket)
                 client_socket.close()
                 break
 
