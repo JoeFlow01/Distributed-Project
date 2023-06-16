@@ -37,7 +37,8 @@ class CarRacing:
                     self.displayUsername(player.username, player.car_x_coordinate, self.local_player.car_y_coordinate-relative_y*100)
                 elif relative_y > 6:
                     self.arrow_up(player.car_x_coordinate)
-                    self.displayUsername(player.username,player.car_x_coordinate,35)
+                    self.displayUsername(player.username,player.car_x_coordinate,5)
+                    print("dsplayinguppp")
                 elif relative_y < 0:
                     self.arrow_down(player.car_x_coordinate)
                     self.displayUsername(player.username,player.car_x_coordinate,420)
@@ -97,7 +98,7 @@ class CarRacing:
         self.white = (255, 255, 255)
         self.red = (255, 0, 0)
         self.enemy_car_height = 100
-        self.enemy_car_speed = 5
+        self.enemy_car_speed = 2
         self.min_enemy_speed = 1
         self.bg_speed = 0
         self.dummy_init = False
@@ -115,6 +116,7 @@ class CarRacing:
         self.opponent_car_img = pygame.image.load('.\\img\\oponent_car.png')
         self.arrowupimg = pygame.image.load('.\\img\\arrow_up.png')
         self.arrowdownimg = pygame.image.load('.\\img\\arrow_down.png')
+        self.finish_img = pygame.image.load('.\\img\\finish.png')
         self.local_player.car_x_coordinate = (self.display_width * 0.45)
         self.local_player.car_y_coordinate = (self.display_height * 0.8)
         self.car_width = 49
@@ -147,7 +149,7 @@ class CarRacing:
             self.gameDisplay.blit(self.opponent_car_img, (car_x_coordinate, car_y_coordinate))
 
     def arrow_up(self,x_coordinate):
-            self.gameDisplay.blit(self.arrowupimg, (x_coordinate, 40))
+            self.gameDisplay.blit(self.arrowupimg, (x_coordinate, 25))
 
     def arrow_down(self,x_coordinate):
             self.gameDisplay.blit(self.arrowdownimg, (x_coordinate, 560))
@@ -191,6 +193,7 @@ class CarRacing:
 
             if (self.local_player.dist_covered / 100) >= self.race_distance:
                 self.display_message("Finished", 7)
+                self.display_finish()
                 self.local_player.finished = True
                 print("Race Finished")
                 pygame.QUIT
@@ -251,6 +254,8 @@ class CarRacing:
             self.Distance_Coverd(self.local_player.dist_covered)
             self.Position(self.local_player.position)
             self.Speed(self.bg_speed)
+            if self.local_player.dist_covered/100 >= self.race_distance-50:
+                self.display_finish()
             self.RaceDistance()
             self.display_players(self.players)
             if not self.local_surroundings.game_started:
@@ -310,12 +315,17 @@ class CarRacing:
         text = font.render("opponents ", True, self.white)
         self.gameDisplay.blit(text, (10, 280))
 
+    def display_finish(self):
+        relative_y = int(self.race_distance*100 - self.local_player.dist_covered)
+        if (relative_y > 0) and relative_y < 600:
+            print("x,y", (self.display_width / 2) - (360 / 2), self.local_player.car_y_coordinate - relative_y)
+            self.gameDisplay.blit(self.finish_img, ((self.display_width / 2) - (360 / 2), self.local_player.car_y_coordinate - relative_y))
+
     def Starting(self):
         font = pygame.font.SysFont("arial", 30)
         text = font.render("Game Starting", True, self.white)
         self.gameDisplay.blit(text, (10, 200))
         sleep(2)
-
 
     def displayUsername(self, username, x, y):
         font = pygame.font.SysFont("arial", 20)
