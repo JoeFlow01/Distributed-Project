@@ -6,15 +6,11 @@ from PlayerFile import Player
 import socket
 import pickle
 import random
-from Chat_Client import Client
-
 
 
 class CarRacing:
 
     def __init__(self):
-        self.Chat_IP = 'localhost'
-        self.Chat_PORT = 9090
         self.max_bg_speed = 20
         self.max_enemy_speed = 23
         self.Loginwindowalive = None
@@ -82,7 +78,6 @@ class CarRacing:
         self.client_socket.send(msgtobesent.encode())
         return_message = self.client_socket.recv(1024).decode()
         if return_message == "Login Successful, Joining the game":
-            Client(self.Chat_IP,self.Chat_PORT,username)
             self.local_player = Player()
             self.local_player.username = username
             self.initialize()
