@@ -6,14 +6,32 @@ from PlayerFile import Player
 import socket
 import pickle
 import random
+from Chat_Client import Client
+
+class Enemy:
+    def __init__(self,x,dist):
+        self.x = x
+        self.at_dist = dist
 
 
 
 class CarRacing:
 
+    def Generate_enemy_list(self):
+        self.enemys = []
+        for i in range(5000,self.race_distance*100+1000,1000):
+            random.seed(i)
+            x = random.randint(310, 450)
+            self.enemys.append(Enemy(x, i))
+
     def __init__(self):
+        self.race_distance = 500
+        self.Generate_enemy_list()
+        self.current_enemy = 0
+        self.Chat_IP = 'localhost'
+        self.Chat_PORT = 9090
         self.max_bg_speed = 20
-        self.max_enemy_speed = 23
+        self.max_enemy_speed = 20
         self.Loginwindowalive = None
         self.local_player = None
         pygame.init()
@@ -32,13 +50,14 @@ class CarRacing:
                     self.car(player.car_x_coordinate, player.car_y_coordinate, local)
                     self.displayUsername(player.username, player.car_x_coordinate, player.car_y_coordinate)
                     continue
-                relative_y = int(player.dist_covered/100) - int(self.local_player.dist_covered/100)
-                if (relative_y > 0) and relative_y < 6:
-                    self.car(player.car_x_coordinate,self.local_player.car_y_coordinate-relative_y*100, local)
-                    self.displayUsername(player.username, player.car_x_coordinate, self.local_player.car_y_coordinate-relative_y*100)
-                elif relative_y > 6:
+                relative_y = int(player.dist_covered) - int(self.local_player.dist_covered)
+                if (relative_y > 0) and relative_y < 600:
+                    self.car(player.car_x_coordinate,self.local_player.car_y_coordinate-relative_y, local)
+                    self.displayUsername(player.username, player.car_x_coordinate, self.local_player.car_y_coordinate-relative_y)
+                elif relative_y > 600:
                     self.arrow_up(player.car_x_coordinate)
-                    self.displayUsername(player.username,player.car_x_coordinate,35)
+                    self.displayUsername(player.username,player.car_x_coordinate,5)
+                    print("dsplayinguppp")
                 elif relative_y < 0:
                     self.arrow_down(player.car_x_coordinate)
                     self.displayUsername(player.username,player.car_x_coordinate,420)
@@ -78,6 +97,7 @@ class CarRacing:
         self.client_socket.send(msgtobesent.encode())
         return_message = self.client_socket.recv(1024).decode()
         if return_message == "Login Successful, Joining the game":
+            Client(self.Chat_IP,self.Chat_PORT,username)
             self.local_player = Player()
             self.local_player.username = username
             self.initialize()
@@ -98,14 +118,14 @@ class CarRacing:
         self.white = (255, 255, 255)
         self.red = (255, 0, 0)
         self.enemy_car_height = 100
-        self.enemy_car_speed = 5
-        self.min_enemy_speed = 1
-        self.bg_speed = 0
+        self.enemy_car_speed = 3
+        self.min_enemy_speed = 0
+        self.bg_speed = 3
         self.dummy_init = False
         random.seed(self.local_player.dist_covered)
-        self.race_distance = 500
-        self.enemy_car_startx = random.randint(310, 450)
-        self.enemy_car_starty = -600
+
+        self.enemy_car_startx = self.enemys[self.current_enemy].x
+        self.enemy_car_starty = self.local_player.dist_covered-self.enemys[self.current_enemy].at_dist
         self.bg_x1 = (self.display_width / 2) - (360 / 2)
         self.bg_x2 = (self.display_width / 2) - (360 / 2)
         self.bg_y1 = 0
@@ -116,6 +136,7 @@ class CarRacing:
         self.opponent_car_img = pygame.image.load('.\\img\\oponent_car.png')
         self.arrowupimg = pygame.image.load('.\\img\\arrow_up.png')
         self.arrowdownimg = pygame.image.load('.\\img\\arrow_down.png')
+        self.finish_img = pygame.image.load('.\\img\\finish.png')
         self.local_player.car_x_coordinate = (self.display_width * 0.45)
         self.local_player.car_y_coordinate = (self.display_height * 0.8)
         self.car_width = 49
@@ -148,7 +169,7 @@ class CarRacing:
             self.gameDisplay.blit(self.opponent_car_img, (car_x_coordinate, car_y_coordinate))
 
     def arrow_up(self,x_coordinate):
-            self.gameDisplay.blit(self.arrowupimg, (x_coordinate, 40))
+            self.gameDisplay.blit(self.arrowupimg, (x_coordinate, 25))
 
     def arrow_down(self,x_coordinate):
             self.gameDisplay.blit(self.arrowdownimg, (x_coordinate, 560))
@@ -174,10 +195,10 @@ class CarRacing:
 
             if self.local_player.crashed and self.local_surroundings.game_started:
                 print("Crashed")
-                self.enemy_car_starty = 0 - self.enemy_car_height
-                random.seed(self.local_player.dist_covered)
-                self.enemy_car_startx = random.randint(310, 450)
-                self.enemy_car_speed = 5
+                self.current_enemy += 1
+                self.enemy_car_starty = self.local_player.dist_covered-self.enemys[self.current_enemy].at_dist # Synchronize enemys
+                self.enemy_car_startx = self.enemys[self.current_enemy].x
+                self.enemy_car_speed = 3
                 self.bg_speed = 3
                 self.local_player.car_x_coordinate = (self.display_width * 0.45)
                 self.display_message("Crashed", 2)
@@ -192,6 +213,7 @@ class CarRacing:
 
             if (self.local_player.dist_covered / 100) >= self.race_distance:
                 self.display_message("Finished", 7)
+                self.display_finish()
                 self.local_player.finished = True
                 print("Race Finished")
                 pygame.QUIT
@@ -208,6 +230,8 @@ class CarRacing:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.client_socket.close()
+                    pygame.QUIT
+                    pygame.quit()
                     print("Game closed")
 
                 if self.local_surroundings.game_started:
@@ -234,9 +258,9 @@ class CarRacing:
                 self.bg_y2 = -600
 
             if self.enemy_car_starty > self.display_height:
-                self.enemy_car_starty = 0 - self.enemy_car_height
-                random.seed(self.local_player.dist_covered)
-                self.enemy_car_startx = random.randint(310, 450)
+                self.current_enemy += 1
+                self.enemy_car_starty = self.local_player.dist_covered-self.enemys[self.current_enemy].at_dist # synchronize enemy
+                self.enemy_car_startx = self.enemys[self.current_enemy].x
 
             self.gameDisplay.fill(self.black)
             self.back_ground_raod()
@@ -252,6 +276,8 @@ class CarRacing:
             self.Distance_Coverd(self.local_player.dist_covered)
             self.Position(self.local_player.position)
             self.Speed(self.bg_speed)
+            if self.local_player.dist_covered/100 >= self.race_distance-50:
+                self.display_finish()
             self.RaceDistance()
             self.display_players(self.players)
             if not self.local_surroundings.game_started:
@@ -311,12 +337,17 @@ class CarRacing:
         text = font.render("opponents ", True, self.white)
         self.gameDisplay.blit(text, (10, 280))
 
+    def display_finish(self):
+        relative_y = int(self.race_distance*100 - self.local_player.dist_covered)
+        if (relative_y > 0) and relative_y < 600:
+            print("x,y", (self.display_width / 2) - (360 / 2), self.local_player.car_y_coordinate - relative_y)
+            self.gameDisplay.blit(self.finish_img, ((self.display_width / 2) - (360 / 2), self.local_player.car_y_coordinate - relative_y))
+
     def Starting(self):
         font = pygame.font.SysFont("arial", 30)
         text = font.render("Game Starting", True, self.white)
         self.gameDisplay.blit(text, (10, 200))
         sleep(2)
-
 
     def displayUsername(self, username, x, y):
         font = pygame.font.SysFont("arial", 20)
